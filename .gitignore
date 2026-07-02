@@ -4,3 +4,4 @@ deb/
 *.tar.gz
 *.tar.xz
 *.rar
+.claude/
