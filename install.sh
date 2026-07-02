@@ -14,7 +14,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; }
+
+# Re-exec under sudo before parsing so the root instance still sees the original
+# args (the parse loop below consumes them via shift). Passing --help/-h stays
+# unprivileged: handle it here first.
+case "${1:-}" in -h|--help) usage; exit 0 ;; esac
+ensure_root "$@"
 
 SANDBOX="setuid"
 while [[ $# -gt 0 ]]; do
@@ -26,8 +32,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 case "$SANDBOX" in setuid|namespace|none) ;; *) die "invalid --sandbox: $SANDBOX" ;; esac
-
-ensure_root "$@"
 
 [[ -d "$EXTRACT_DIR" ]] || die "no extract/ — run ./download.sh first"
 PAYLOAD_DIR="$(detect_payload "$EXTRACT_DIR")" \

@@ -3,7 +3,8 @@
 #
 #   ./uninstall.sh              remove system install + local deb/ and extract/
 #   ./uninstall.sh --keep-local remove the system install only, keep deb/extract
-#   ./uninstall.sh --purge      also delete THIS user's Claude config + cache
+#   ./uninstall.sh --purge      also delete THIS user's app data (config/cache/
+#                               share) + claude:// mimeapps association
 #   ./uninstall.sh --help
 #
 # Uses sudo for /opt and /usr. Does not touch the scripts themselves.
@@ -13,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-usage() { sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; }
 
 PURGE=0; KEEP_LOCAL=0
 for a in "$@"; do
@@ -73,9 +74,23 @@ fi
 if [[ "$PURGE" -eq 1 ]]; then
   info "--purge: removing per-user data for $REAL_USER"
   for d in \
-    "$REAL_HOME/.config/Claude" "$REAL_HOME/.config/claude-desktop" \
-    "$REAL_HOME/.cache/Claude"  "$REAL_HOME/.cache/claude-desktop"; do
+    "$REAL_HOME/.config/Claude"       "$REAL_HOME/.config/claude-desktop" \
+    "$REAL_HOME/.cache/Claude"        "$REAL_HOME/.cache/claude-desktop" \
+    "$REAL_HOME/.local/share/Claude"  "$REAL_HOME/.local/share/claude-desktop"; do
     if [[ -e "$d" ]]; then rm -rf -- "$d"; info "removed $d"; fi
+  done
+  # strip the claude:// scheme-handler association the app may have written into
+  # the user's mimeapps.list (rewrite in place to preserve owner/permissions).
+  for m in \
+    "$REAL_HOME/.config/mimeapps.list" \
+    "$REAL_HOME/.local/share/applications/mimeapps.list"; do
+    [[ -f "$m" ]] || continue
+    grep -q 'claude-desktop\.desktop' "$m" 2>/dev/null || continue
+    tmp="$(mktemp)"
+    grep -v 'claude-desktop\.desktop' "$m" > "$tmp" || true
+    cat "$tmp" > "$m"   # truncate-write keeps the original inode's owner/mode
+    rm -f "$tmp"
+    info "cleaned claude scheme handler from $m"
   done
 fi
 

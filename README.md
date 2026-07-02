@@ -53,8 +53,13 @@ See `CHROME-SANDBOX.md` for the full explanation.
 ```bash
 ./uninstall.sh                # remove system install + local deb/ and extract/
 ./uninstall.sh --keep-local   # remove system install only, keep deb/ + extract/
-./uninstall.sh --purge        # also delete your ~/.config + ~/.cache app data
+./uninstall.sh --purge        # also delete this user's app data
 ```
+
+`--purge` removes the app's per-user state (`~/.config`, `~/.cache`, and
+`~/.local/share` under both `Claude` and `claude-desktop`) and strips the
+`claude://` scheme-handler association from your `mimeapps.list`. Without it,
+uninstall leaves per-user settings untouched.
 
 ## Requirements
 

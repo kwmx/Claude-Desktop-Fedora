@@ -1,2 +1,6 @@
 extract/
 deb/
+*.zip
+*.tar.gz
+*.tar.xz
+*.rar
